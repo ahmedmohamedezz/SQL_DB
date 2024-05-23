@@ -194,3 +194,14 @@ where
   and 
     (w1.temperature > w2.temperature);
 ```
+
+- you can merge multiple rows from different query like
+
+```sql
+select product_id, year as first_year, quantity, price
+from Sales
+where 
+    (product_id, year)  -- matched pair
+  in 
+    (select product_id, min(year) as year from Sales group by product_id);
+```
