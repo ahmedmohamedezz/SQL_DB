@@ -2,6 +2,11 @@
 
 > to review SQL syntax, refer to [W3S](https://www.w3schools.com/sql/default.asp)
 
+
+> refer for [DateFunctions](https://www.w3schools.com/sql/func_sqlserver_current_timestamp.asp), for details about date manipulations in sql
+
+---
+
 - when you're dealing with numbers, nulls are not handled
 - comparison operators deals only with numbers (skip NULLs)
 
@@ -148,4 +153,44 @@ having count(student) >= 5
 
 ```sql
 select round(count(user_id) * 100 / (select count(user_id) from Users) ,2) as percentage
+```
+
+- see the next functions for date manipulation
+  - datediff(date1, date2)
+  - date_sub(date, interval 1 day)
+  - date_add(date, interval 1 day)
+  - datepart(year, date) 
+  - day(date), month(date), year(date)
+
+```sql
+-- query: select days having temperature higher that the prev day (yesterday)
+
+-- Sol. 1
+select w1.id
+from Weather w1 inner join Weather w2
+on datediff(w1.recordDate, w2.recordDate) = 1   -- date1 - date2 = 1
+where w1.temperature > w2.temperature
+
+
+-- Sol. 2
+select w1.id
+from weather as w1
+join weather as w2
+on w1.recordDate = w2.recordDate + INTERVAL 1 DAY
+where w2.temperature < w1.temperature
+
+-- Sol. 3
+select w1.id
+from Weather w1 join Weather w2 
+on DATE_SUB(w1.recordDate, INTERVAL 1 DAY) = w2.recordDate
+-- OR w1.recordDate = DATE_ADD(w2.recordDate, INTERVAL 1 DAY)
+where w1.temperature > w2.temperature;
+
+-- Sol. 4
+select w1.id 
+from Weather w1, Weather w2
+where 
+    (w1.recordDate = w2.recordDate + interval 1 day) 
+  and 
+    (w1.temperature > w2.temperature);
 ```
