@@ -2,7 +2,6 @@
 
 > to review SQL syntax, refer to [W3S](https://www.w3schools.com/sql/default.asp)
 
-
 > refer for [DateFunctions](https://www.w3schools.com/sql/func_sqlserver_current_timestamp.asp), for details about date manipulations in sql
 
 ---
@@ -136,6 +135,10 @@ order by column_name(s); -- 6
 
 - the following 2 queries are not the same (trying to get class with >= 5 students)
 
+- **USE** `group by` with `having`, or the query answer will not always be correct
+
+- make sure that the field you use with `group by` is **unique** (key field)
+
 ```sql
 -- correct
 select class
@@ -159,7 +162,7 @@ select round(count(user_id) * 100 / (select count(user_id) from Users) ,2) as pe
   - datediff(date1, date2)
   - date_sub(date, interval 1 day)
   - date_add(date, interval 1 day)
-  - datepart(year, date) 
+  - datepart(year, date)
   - day(date), month(date), year(date)
 
 ```sql
@@ -181,17 +184,17 @@ where w2.temperature < w1.temperature
 
 -- Sol. 3
 select w1.id
-from Weather w1 join Weather w2 
+from Weather w1 join Weather w2
 on DATE_SUB(w1.recordDate, INTERVAL 1 DAY) = w2.recordDate
 -- OR w1.recordDate = DATE_ADD(w2.recordDate, INTERVAL 1 DAY)
 where w1.temperature > w2.temperature;
 
 -- Sol. 4
-select w1.id 
+select w1.id
 from Weather w1, Weather w2
-where 
-    (w1.recordDate = w2.recordDate + interval 1 day) 
-  and 
+where
+    (w1.recordDate = w2.recordDate + interval 1 day)
+  and
     (w1.temperature > w2.temperature);
 ```
 
@@ -200,8 +203,26 @@ where
 ```sql
 select product_id, year as first_year, quantity, price
 from Sales
-where 
+where
     (product_id, year)  -- matched pair
-  in 
+  in
     (select product_id, min(year) as year from Sales group by product_id);
+```
+
+- the following query calculate avg of confirmed mails (confimed / total)
+
+```sql
+select S.user_id, 
+  round(avg(if(C.action="confirmed", 1, 0)), 2) as confirmation_rate
+from Signups S left join Confirmations C
+on S.user_id = C.user_id
+group by S.user_id
+```
+
+- to calculate a ratio depending on values of field, you can use `avg()` + `if()`
+  - each if() will return a result
+  - avg() will sum results, then divide by thier number
+
+```sql
+round(avg(if(rating < 3, 1, 0)) * 100, 2) as query_percentage
 ```
