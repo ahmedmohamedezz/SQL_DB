@@ -226,3 +226,38 @@ group by S.user_id
 ```sql
 round(avg(if(rating < 3, 1, 0)) * 100, 2) as query_percentage
 ```
+
+- suppose we have a date in a certain format, and we need to select it with other format. we can do this in several ways
+  - refer to [date_format](https://www.w3schools.com/sql/func_mysql_date_format.asp)
+  - refer to [left](https://www.w3schools.com/sql/func_sqlserver_left.asp)
+  - refer to [substring](https://www.w3schools.com/sql/func_sqlserver_substring.asp)
+
+- our query wants to find some info related to each month
+- the table stores the whole date 'yyyy-mm-dd' ,but we don't care about 'd'
+
+- notice, how we `group by` month
+
+```sql
+-- Sol. 1
+select date_format(trans_date, "%Y-%m") as month, sum(amount) as trans_total_amount
+from Transactions
+group by date_format(trans_date, "%Y-%m")
+
+
+-- Sol. 2, since the new format 'yyyy-mm' is part of the table stored format 'yyyy-mm-dd', we can take part of it (sut string)
+select left(trans_date, 7) as month, sum(amount) as trans_total_amount
+from Transactions
+group by left(trans_date, 7)
+
+-- Sol. 3, using substring(string, startPos, len) method
+select substring(trans_date, 1, 7) as month, sum(amount) as trans_total_amount
+from Transactions
+group by substring(trans_date, 1, 7)  -- consider the string 1-based (1st char index is 1)
+```
+
+
+---
+
+### Readings
+
+- is it recommended to use select alias in group by ? [StackOverFlow](https://stackoverflow.com/questions/3841295/sql-using-alias-in-group-by)
