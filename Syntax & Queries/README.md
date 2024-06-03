@@ -85,6 +85,8 @@ group by customer_id
 
 - aggregate functions ignore null values 'except for COUNT()'
 
+- aggregate functions can accept a boolean expression instead of column name
+
 ```sql
 -- the following query counts all rows (count nulls also)
 select count(*) from Products;
@@ -212,7 +214,7 @@ where
 - the following query calculate avg of confirmed mails (confimed / total)
 
 ```sql
-select S.user_id, 
+select S.user_id,
   round(avg(if(C.action="confirmed", 1, 0)), 2) as confirmation_rate
 from Signups S left join Confirmations C
 on S.user_id = C.user_id
@@ -228,6 +230,7 @@ round(avg(if(rating < 3, 1, 0)) * 100, 2) as query_percentage
 ```
 
 - suppose we have a date in a certain format, and we need to select it with other format. we can do this in several ways
+
   - refer to [date_format](https://www.w3schools.com/sql/func_mysql_date_format.asp)
   - refer to [left](https://www.w3schools.com/sql/func_sqlserver_left.asp)
   - refer to [substring](https://www.w3schools.com/sql/func_sqlserver_substring.asp)
@@ -254,6 +257,59 @@ select substring(trans_date, 1, 7) as month, sum(amount) as trans_total_amount
 from Transactions
 group by substring(trans_date, 1, 7)  -- consider the string 1-based (1st char index is 1)
 ```
+
+- the following queries return the same result, but the first is more efficient
+  - the first solution will run the sub query only once, and then filter result in outer query
+  - the second solution will run the sub query once for each row in the outer query which is less efficient
+
+```sql
+-- Sol. 1
+SELECT ROUND(AVG(order_date = customer_pref_delivery_date) * 100, 2) AS immediate_percentage
+FROM Delivery
+WHERE (customer_id, order_date) IN (
+    SELECT customer_id, MIN(order_date)
+    FROM Delivery
+    GROUP BY customer_id
+);
+
+
+-- Sol. 2
+SELECT ROUND(AVG(order_date = customer_pref_delivery_date) * 100, 2) AS immediate_percentage
+FROM Delivery
+WHERE (customer_id, order_date) IN (
+    SELECT customer_id, MIN(order_date)
+    FROM Delivery
+    GROUP BY customer_id
+);
+```
+
+- sql **requires** a name for the sub-query of the from clause
+
+```sql
+select max(num) as num
+from (    -- from + sub-query => must use alias for sub-query
+    select num from MyNumbers group by num having count(num) = 1
+) as singleNums
+```
+
+---
+
+# String Functions
+
+- concat(str1, str2): concatenate strings
+
+- left(str, n): return the left 'n' chars from 'str'
+
+  - right(str, n): same but from the end
+
+- length(str): string length
+
+- upper(str): upperacse string
+
+  - lower(str): same but lowercase
+
+- substring(str, startInd, [no. of chars]): get a substring
+  - 3rd parameter is optional => default [startInd, end of string]
 
 
 ---
