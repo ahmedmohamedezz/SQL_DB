@@ -292,6 +292,61 @@ from (    -- from + sub-query => must use alias for sub-query
 ) as singleNums
 ```
 
+- suppose, we want to make a query to get employee working in only 1 department, or the main department if many exists
+
+- note that we need to filter based on 2 conditions
+
+  - one using aggregate function `count()`
+  - one to check a column value
+
+- if we used `where` clause, aggegate function won't work, and if we used `having` the second check won't work
+
+- so, we have 2 solutions
+  1. treat each as a separate query and [union](https://www.w3schools.com/sql/sql_union.asp) the result
+  2. use subquery in `where` clause
+
+```sql
+-- Sol. 1
+select employee_id, department_id
+from Employee
+where primary_flag = 'Y'
+union
+select employee_id, department_id
+from Employee
+group by employee_id
+having count(employee_id) = 1
+
+-- Sol. 2
+select employee_id, department_id
+from Employee
+where primary_flag = 'Y' or employee_id in (
+    select employee_id from Employee group by employee_id having count(employee_id) = 1
+    )
+order by employee_id
+```
+
+- in some queries, the [case](https://www.w3schools.com/sql/sql_case.asp) expression in sql may be useful
+- suppose we want to manipulate the id value while fetching the data
+
+```sql
+select
+    case
+        when id = (select max(id) from Seat) and id % 2 = 1
+            then id
+
+        when id % 2 = 1
+            then id + 1
+
+        else
+            id - 1
+    end as id,
+    student
+from Seat
+order by id;
+```
+
+> we can replace `else` part with `when id % 2 = 0 then id - 1`
+
 ---
 
 # String Functions
@@ -309,8 +364,32 @@ from (    -- from + sub-query => must use alias for sub-query
   - lower(str): same but lowercase
 
 - substring(str, startInd, [no. of chars]): get a substring
+
   - 3rd parameter is optional => default [startInd, end of string]
 
+- suppose, we want to know patients with certain type of diabetes
+
+  - where col conditions contains 'DIAB1\*\*' as one of the patient conditions
+  - ex. 'DIAB101 XX YY' or 'XX DIAB103 ZZ'
+
+- we can use the [like](https://www.w3schools.com/sql/sql_like.asp) operator
+
+  - either start with `DIAB1`, or has it (not included in other condition `XDIAB1` is not considered)
+
+- we can also use sql [regexp](https://www.scaler.com/topics/regex-in-sql/)
+
+```sql
+-- Sol. 1
+select *
+from Patients
+where conditions like '% DIAB1%' or conditions like 'DIAB1%'
+
+-- Sol. 2
+select *
+from Patients
+-- where DIAB1 is a boundary (start of word)
+where conditions regexp '\\bDIAB1'; -- contains 'DIAB1'
+```
 
 ---
 
