@@ -160,13 +160,6 @@ having count(student) >= 5
 select round(count(user_id) * 100 / (select count(user_id) from Users) ,2) as percentage
 ```
 
-- see the next functions for date manipulation
-  - datediff(date1, date2)
-  - date_sub(date, interval 1 day)
-  - date_add(date, interval 1 day)
-  - datepart(year, date)
-  - day(date), month(date), year(date)
-
 ```sql
 -- query: select days having temperature higher that the prev day (yesterday)
 
@@ -199,6 +192,70 @@ where
   and
     (w1.temperature > w2.temperature);
 ```
+
+- suppose we want to get name of user who rated greatest number of movies
+- and also the movie that has the most avg rating
+- finally union the 2 results
+
+- look at the following query and notice:
+  - use of [using](https://stackoverflow.com/questions/11366006/mysql-join-on-vs-using) clause
+  - [union all](https://www.w3schools.com/sql/sql_ref_union_all.asp) operator
+  - unioned queries must be surrounded with ()
+  - union => join unique values, union all => join + allow duplicates
+
+```sql
+-- part. 1
+(select name as result
+from Users join MovieRating using(user_id)
+group by name -- if removed => error 'order by contains aggregate function'
+order by count(*) -- no. of ratings
+limit 1)
+
+union all
+
+-- part. 2
+(select name as result
+from Movies join MovieRating using(movie_id)
+group by name
+order by avg(rating)
+limit 1)
+```
+
+- to delete all duplicate emails leaving the one with min(id), we can do the following
+
+```sql
+-- Sol. 1
+delete from Person
+where id not in (
+  select id from (
+    select min(id) as id
+    from Person
+    group by email
+  ) sub
+)
+
+-- Sol. 2
+delete P1 -- specify which table to delete (P1, or P2 ?)
+from Person P1, Person P2
+where P1.email = P2.email and P1.id > P2.id
+```
+
+```sql
+-- note that the following query will make an ERROR
+-- you can't modify the same table which you use in the SELECT part
+
+delete from Person
+where id not in (
+  -- missing select statement (select id from sub-query)
+  select min(id)
+  from Person
+  group by email
+)
+```
+
+- refer to [link](https://stackoverflow.com/questions/45494/mysql-error-1093-cant-specify-target-table-for-update-in-from-clause) for explanation
+
+---
 
 - you can merge multiple rows from different query like
 
@@ -346,6 +403,35 @@ order by id;
 ```
 
 > we can replace `else` part with `when id % 2 = 0 then id - 1`
+
+- suppose, we want to get the min, or max value between several values
+  - we can use functions greatest(), least()
+
+```sql
+-- check if valid traingle using sql
+if(x+y+z > greatest(x, y, z) * 2, "Yes", "No")
+```
+
+---
+
+# Date Functions
+
+- [date_format](https://www.w3schools.com/sql/func_mysql_date_format.asp)
+
+- [datediff(date1, date2)](https://www.w3schools.com/sql/func_mysql_datediff.asp)
+
+- [date_sub(date, interval 1 day)](https://www.w3schools.com/sql/func_mysql_date_sub.asp)
+
+- [date_add(date, interval 1 day)](https://www.w3schools.com/sql/func_mysql_date_add.asp)
+
+- [datepart(part, date)](https://www.w3schools.com/sql/func_sqlserver_datepart.asp)
+
+- day(date), month, [year](https://www.w3schools.com/sql/func_mysql_year.asp)
+
+- [extract(part from date)](https://www.w3schools.com/sql/func_mysql_extract.asp)
+  - Feb, 2020 `where extract(YEAR_MONTH from created_at) = 202002`
+
+> notice that string functions can be used with date treating it as a string
 
 ---
 
