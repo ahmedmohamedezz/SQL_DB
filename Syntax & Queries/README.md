@@ -35,9 +35,24 @@ select tweet_id from Tweets where length(content) > 15;
 - you can use joins with more than 2 tables
 
 ```sql
+-- Ex. 1
 select Orders.OrderID, Customers.CustomerName, Shippers.ShipperName
-from ((Ordersinner join Customers on Orders.CustomerID = Customers.CustomerID)
-inner join Shippers on Orders.ShipperID = Shippers.ShipperID);
+from (
+  (Ordersinner join Customers on Orders.CustomerID = Customers.CustomerID)
+  inner join Shippers on Orders.ShipperID = Shippers.ShipperID);
+
+-- Ex. 2
+select L1.num as ConsecutiveNums
+from (
+    Logs L1 join Logs L2 on L1.num = L2.num and L1.id + 1 = L2.id
+    ) join Logs L3 on L2.num = L3.num and L2.id + 1 = L3.id
+group by L1.num;
+
+-- Ex. 2 (reshape)
+-- we can remove 'distinct', and add 'group by L1.num'
+select distinct L1.num as ConsecutiveNums
+from Logs L1, Logs L2, Logs L3
+where L1.id + 1 = L2.id and L2.id + 1 = L3.id and L1.num = L2.num and L2.num = L3.num
 ```
 
 - result of `full join` is huge & maybe filled with alot of `NULL's`
@@ -102,6 +117,25 @@ select count(ProductName) from Products;
 select sum(Price * Quantity)
 from OrderDetails
 ```
+
+- the following example demonstrates usin aggregate functions on portion of the data (get 2nd highest salary)
+
+```sql
+-- Sol. 1
+select max(salary) as SecondHighestSalary
+from Employee
+where salary not in (
+    -- top 1
+    select max(salary) from Employee
+)
+
+-- Sol. 2
+select max(salary) as SecondHighestSalary
+from Employee
+where salary < (select max(salary) from Employee)
+```
+
+
 
 - the following query calculates the avg selling price of items
 
@@ -267,6 +301,45 @@ where
   in
     (select product_id, min(year) as year from Sales group by product_id);
 ```
+
+- we can use subqueries to calculate rolling window in some interval
+- the following query get the avg, total in every 7-days window
+- there is also solution using joins + subqueries
+
+```sql
+-- Sol. 1 (subqueries)
+select visited_on, 
+    (
+        select sum(amount)
+        from Customer
+        where visited_on between date_sub(C.visited_on, interval 6 day) and C.visited_on
+    ) as amount,
+    (
+        select round(sum(amount) / 7, 2)
+        from Customer
+        where visited_on between date_sub(C.visited_on, interval 6 day) and C.visited_on
+    ) as average_amount
+from Customer C
+-- consider only days with valid window size
+where visited_on >= (select date_add(min(visited_on), interval 6 day) from Customer)
+group by visited_on
+
+
+-- Sol. 2 (joins + subqueris)
+select C1.visited_on, sum(C2.amount) as amount, round(sum(C2.amount) / 7, 2) as average_amount
+from (
+    -- get all days with valid window size
+    select visited_on
+    from Customer
+    where datediff(visited_on, (select min(visited_on) from Customer)) >= 6
+    group by visited_on
+) C1 left join Customer C2
+-- match each row from C1 with 7 rows from C2
+on datediff(C1.visited_on, C2.visited_on) between 0 and 6
+group by C1.visited_on
+order by C1.visited_on
+```
+
 
 - the following query calculate avg of confirmed mails (confimed / total)
 
