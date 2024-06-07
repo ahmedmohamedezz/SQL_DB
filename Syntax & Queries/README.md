@@ -188,6 +188,22 @@ from Courses
 having count(student) >= 5
 ```
 
+- to count occurences of some values in multiple columns, you can union the columns
+
+```sql
+-- count id value either as a requester, or accepter
+with result as (
+    (select requester_id as id from RequestAccepted)
+    union all
+    (select accepter_id as id from RequestAccepted)
+)
+select id, count(id) as num
+from result
+group by id
+order by count(id) desc
+limit 1
+```
+
 - you can use sub queries in select statment
 
 ```sql
@@ -506,11 +522,36 @@ if(x+y+z > greatest(x, y, z) * 2, "Yes", "No")
 
 > notice that string functions can be used with date treating it as a string
 
+- the following query selects the last price of the product before a certain date, along with 10 as the default price for the remaining product that it's price weren't changed
+
+```sql
+(
+    select product_id, new_price as price
+    from Products
+    where (product_id, change_date) in (
+        select product_id, max(change_date) as change_date
+        from Products
+        where change_date <= '2019-08-16'
+        group by product_id
+    )
+)
+union
+(
+    select product_id, 10 as price
+    from Products
+    group by product_id
+    having min(change_date) > "2019-08-16"
+)
+```
+
 ---
 
 # String Functions
 
 - concat(str1, str2): concatenate strings
+
+- group_concat(): group values of column in string
+  - refer to [GFG](https://www.geeksforgeeks.org/mysql-group_concat-function/)
 
 - left(str, n): return the left 'n' chars from 'str'
 
@@ -550,8 +591,24 @@ from Patients
 where conditions regexp '\\bDIAB1'; -- contains 'DIAB1'
 ```
 
+- suppose, we want to query for each day:
+  - the no. of the products sold
+  - the product name aggregated in string
+
+- the `group_concat()` methods is suitable in such a situation
+
+```sql
+select sell_date, count(distinct product) as num_sold, 
+       group_concat(distinct product order by product separator ',') as products
+from Activities
+group by sell_date
+order by sell_date
+```
+
 ---
 
 ### Readings
 
 - is it recommended to use select alias in group by ? [StackOverFlow](https://stackoverflow.com/questions/3841295/sql-using-alias-in-group-by)
+
+- what is meant by `group by 1` or `order by 2` ? [StackOverFlow](https://stackoverflow.com/questions/7392730/what-does-sql-clause-group-by-1-mean)
