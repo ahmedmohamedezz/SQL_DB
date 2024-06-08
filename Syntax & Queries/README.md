@@ -471,6 +471,28 @@ where primary_flag = 'Y' or employee_id in (
 order by employee_id
 ```
 
+- as we can union the results or queries, we can also get the intersection between result using `and` operator
+
+```sql
+-- this query gets sum based on 2 conditions
+  -- 1. count(tiv) > 1
+  -- 2. UNIQUE combinations of (lat & lon)
+select round(sum(tiv_2016), 2) as tiv_2016
+from Insurance
+where tiv_2015 in (
+    select tiv_2015
+    from Insurance
+    group by tiv_2015
+    having count(tiv_2015) > 1
+) and (lat, lon) in (
+    select lat, lon
+    from Insurance
+    group by lat, lon
+    having count(*) = 1
+)
+```
+
+
 - in some queries, the [case](https://www.w3schools.com/sql/sql_case.asp) expression in sql may be useful
 - suppose we want to manipulate the id value while fetching the data
 
@@ -604,6 +626,44 @@ from Activities
 group by sell_date
 order by sell_date
 ```
+
+---
+
+# Common Table Expressions (CTE)
+
+- group by function makes an aggregation on the data, but it group rows into 1 result
+
+- with cte, we can make an aggregation without affecting the number of rows (aggregation with respect to the table)
+
+- refer to [window functions](https://www.sqlshack.com/use-window-functions-sql-server/) to see different aggregations that can be applied
+
+- you will notice that after the aggregation we use special key words like
+  - over: to determine partitions of table, and the ordering of the aggregation
+  - partition by: used to determine partitions (each is treated as sub-table)
+
+- look at the following example
+
+```sql
+-- this query return the same no. of rows as the table
+-- it shows the sum of orders per city (partition by city)
+-- all rows of the same city will have the same value in grand_total column
+
+SELECT order_id, order_date, customer_name, city, order_amount
+ ,SUM(order_amount) OVER(PARTITION BY city) as grand_total 
+FROM Orders
+```
+
+- here is an example of `cte` in `from` clause
+```sql
+select person_name
+from (
+    select *, sum(weight) over (order by turn) as total_weight from Queue
+) as sub
+where total_weight <= 1000
+order by total_weight desc
+limit 1
+```
+
 
 ---
 
