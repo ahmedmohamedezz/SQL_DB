@@ -271,6 +271,35 @@ order by avg(rating)
 limit 1)
 ```
 
+- the following query counts the no. of categories (0, if not found)
+
+```sql
+-- Sol. 2
+select "Low Salary" as category, count(income) as accounts_count
+from Accounts
+where income < 20000
+
+union
+
+select "Average Salary" as category, count(income) as accounts_count
+from Accounts
+where income between 20000 and 50000
+
+union
+
+select "High Salary" as category, count(income) as accounts_count
+from Accounts
+where income > 50000
+
+-- IMPORTANT NOTE
+-- the following query, won't work. because group by are meant to be used
+-- with column values, not result of aggregate funcions
+select "High Salary" as category, count(income) as accounts_count
+from Accounts
+where income > 50000
+group by count(income)
+```
+
 - to delete all duplicate emails leaving the one with min(id), we can do the following
 
 ```sql
@@ -613,6 +642,18 @@ from Patients
 where conditions regexp '\\bDIAB1'; -- contains 'DIAB1'
 ```
 
+- find users with valid mails
+  - start with a letter
+  - then chars, digits, ., _, - are allowed
+  - end with 'leetcode.com'
+
+```sql
+select *
+from Users
+WHERE mail REGEXP '^[A-Za-z][A-Za-z0-9_\\.\\-]*@leetcode\\.com$';
+```
+
+
 - suppose, we want to query for each day:
   - the no. of the products sold
   - the product name aggregated in string
@@ -662,6 +703,20 @@ from (
 where total_weight <= 1000
 order by total_weight desc
 limit 1
+```
+
+- the following query uses cte to rank salaries in each department
+  - read about [dense_rank vs. rank](https://www.naukri.com/code360/library/difference-between-rank-and-denserank)
+
+```sql
+with CTE as (
+    select *, dense_rank() over (partition by departmentId order by salary desc) as rnk
+    from Employee
+)
+-- select * from cte
+select d.name as Department, c.name as Employee, c.salary as Salary
+from CTE c, Department d
+where c.rnk <= 3 and c.departmentId = d.id
 ```
 
 
