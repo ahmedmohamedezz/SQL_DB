@@ -1,10 +1,23 @@
 # DB Notes
 
+### Sections
+
+<!-- Comments -->
+
+- [Select & Sort](#select-and-sort)
+- [Joins & Aggregate Functions](#joins-and-aggregate-functions)
+- [Subqueries](#subqueries)
+- [Date Functions](#date-functions)
+- [String Functions](#string-functions)
+- [Common Table Expressions (CTE)](#common-table-expressions-cte)
+- [Readings](#readings)
+
+
 > to review SQL syntax, refer to [W3S](https://www.w3schools.com/sql/default.asp)
 
-> refer for [DateFunctions](https://www.w3schools.com/sql/func_sqlserver_current_timestamp.asp), for details about date manipulations in sql
-
 ---
+
+### Select and Sort
 
 - when you're dealing with numbers, nulls are not handled
 - comparison operators deals only with numbers (skip NULLs)
@@ -31,6 +44,10 @@ order by age desc;
 ```sql
 select tweet_id from Tweets where length(content) > 15;
 ```
+
+---
+
+### Joins and Aggregate Functions
 
 - you can use joins with more than 2 tables
 
@@ -135,8 +152,6 @@ from Employee
 where salary < (select max(salary) from Employee)
 ```
 
-
-
 - the following query calculates the avg selling price of items
 
 ```sql
@@ -186,28 +201,6 @@ having count(student) >= 5
 select class
 from Courses
 having count(student) >= 5
-```
-
-- to count occurences of some values in multiple columns, you can union the columns
-
-```sql
--- count id value either as a requester, or accepter
-with result as (
-    (select requester_id as id from RequestAccepted)
-    union all
-    (select accepter_id as id from RequestAccepted)
-)
-select id, count(id) as num
-from result
-group by id
-order by count(id) desc
-limit 1
-```
-
-- you can use sub queries in select statment
-
-```sql
-select round(count(user_id) * 100 / (select count(user_id) from Users) ,2) as percentage
 ```
 
 ```sql
@@ -270,7 +263,6 @@ group by name
 order by avg(rating)
 limit 1)
 ```
-
 - the following query counts the no. of categories (0, if not found)
 
 ```sql
@@ -300,102 +292,6 @@ where income > 50000
 group by count(income)
 ```
 
-- to delete all duplicate emails leaving the one with min(id), we can do the following
-
-```sql
--- Sol. 1
-delete from Person
-where id not in (
-  select id from (
-    select min(id) as id
-    from Person
-    group by email
-  ) sub
-)
-
--- Sol. 2
-delete P1 -- specify which table to delete (P1, or P2 ?)
-from Person P1, Person P2
-where P1.email = P2.email and P1.id > P2.id
-```
-
-```sql
--- note that the following query will make an ERROR
--- you can't modify the same table which you use in the SELECT part
-
-delete from Person
-where id not in (
-  -- missing select statement (select id from sub-query)
-  select min(id)
-  from Person
-  group by email
-)
-```
-
-- refer to [link](https://stackoverflow.com/questions/45494/mysql-error-1093-cant-specify-target-table-for-update-in-from-clause) for explanation
-
----
-
-- you can merge multiple rows from different query like
-
-```sql
-select product_id, year as first_year, quantity, price
-from Sales
-where
-    (product_id, year)  -- matched pair
-  in
-    (select product_id, min(year) as year from Sales group by product_id);
-```
-
-- we can use subqueries to calculate rolling window in some interval
-- the following query get the avg, total in every 7-days window
-- there is also solution using joins + subqueries
-
-```sql
--- Sol. 1 (subqueries)
-select visited_on, 
-    (
-        select sum(amount)
-        from Customer
-        where visited_on between date_sub(C.visited_on, interval 6 day) and C.visited_on
-    ) as amount,
-    (
-        select round(sum(amount) / 7, 2)
-        from Customer
-        where visited_on between date_sub(C.visited_on, interval 6 day) and C.visited_on
-    ) as average_amount
-from Customer C
--- consider only days with valid window size
-where visited_on >= (select date_add(min(visited_on), interval 6 day) from Customer)
-group by visited_on
-
-
--- Sol. 2 (joins + subqueris)
-select C1.visited_on, sum(C2.amount) as amount, round(sum(C2.amount) / 7, 2) as average_amount
-from (
-    -- get all days with valid window size
-    select visited_on
-    from Customer
-    where datediff(visited_on, (select min(visited_on) from Customer)) >= 6
-    group by visited_on
-) C1 left join Customer C2
--- match each row from C1 with 7 rows from C2
-on datediff(C1.visited_on, C2.visited_on) between 0 and 6
-group by C1.visited_on
-order by C1.visited_on
-```
-
-
-- the following query calculate avg of confirmed mails (confimed / total)
-
-```sql
-select S.user_id,
-  round(avg(if(C.action="confirmed", 1, 0)), 2) as confirmation_rate
-from Signups S left join Confirmations C
-on S.user_id = C.user_id
-group by S.user_id
-```
-
 - to calculate a ratio depending on values of field, you can use `avg()` + `if()`
   - each if() will return a result
   - avg() will sum results, then divide by thier number
@@ -407,8 +303,6 @@ round(avg(if(rating < 3, 1, 0)) * 100, 2) as query_percentage
 - suppose we have a date in a certain format, and we need to select it with other format. we can do this in several ways
 
   - refer to [date_format](https://www.w3schools.com/sql/func_mysql_date_format.asp)
-  - refer to [left](https://www.w3schools.com/sql/func_sqlserver_left.asp)
-  - refer to [substring](https://www.w3schools.com/sql/func_sqlserver_substring.asp)
 
 - our query wants to find some info related to each month
 - the table stores the whole date 'yyyy-mm-dd' ,but we don't care about 'd'
@@ -431,40 +325,6 @@ group by left(trans_date, 7)
 select substring(trans_date, 1, 7) as month, sum(amount) as trans_total_amount
 from Transactions
 group by substring(trans_date, 1, 7)  -- consider the string 1-based (1st char index is 1)
-```
-
-- the following queries return the same result, but the first is more efficient
-  - the first solution will run the sub query only once, and then filter result in outer query
-  - the second solution will run the sub query once for each row in the outer query which is less efficient
-
-```sql
--- Sol. 1
-SELECT ROUND(AVG(order_date = customer_pref_delivery_date) * 100, 2) AS immediate_percentage
-FROM Delivery
-WHERE (customer_id, order_date) IN (
-    SELECT customer_id, MIN(order_date)
-    FROM Delivery
-    GROUP BY customer_id
-);
-
-
--- Sol. 2
-SELECT ROUND(AVG(order_date = customer_pref_delivery_date) * 100, 2) AS immediate_percentage
-FROM Delivery
-WHERE (customer_id, order_date) IN (
-    SELECT customer_id, MIN(order_date)
-    FROM Delivery
-    GROUP BY customer_id
-);
-```
-
-- sql **requires** a name for the sub-query of the from clause
-
-```sql
-select max(num) as num
-from (    -- from + sub-query => must use alias for sub-query
-    select num from MyNumbers group by num having count(num) = 1
-) as singleNums
 ```
 
 - suppose, we want to make a query to get employee working in only 1 department, or the main department if many exists
@@ -552,9 +412,165 @@ order by id;
 if(x+y+z > greatest(x, y, z) * 2, "Yes", "No")
 ```
 
+--- 
+
+# Subqueries
+
+- to count occurences of some values in multiple columns, you can union the columns
+
+```sql
+-- count id value either as a requester, or accepter
+with result as (
+    (select requester_id as id from RequestAccepted)
+    union all
+    (select accepter_id as id from RequestAccepted)
+)
+select id, count(id) as num
+from result
+group by id
+order by count(id) desc
+limit 1
+```
+
+- you can use sub queries in select statment
+
+```sql
+select round(count(user_id) * 100 / (select count(user_id) from Users) ,2) as percentage
+```
+
+- to delete all duplicate emails leaving the one with min(id), we can do the following
+
+```sql
+-- Sol. 1
+delete from Person
+where id not in (
+  select id from (
+    select min(id) as id
+    from Person
+    group by email
+  ) sub
+)
+
+-- Sol. 2
+delete P1 -- specify which table to delete (P1, or P2 ?)
+from Person P1, Person P2
+where P1.email = P2.email and P1.id > P2.id
+```
+
+```sql
+-- note that the following query will make an ERROR
+-- you can't modify the same table which you use in the SELECT part
+
+delete from Person
+where id not in (
+  -- missing select statement (select id from sub-query)
+  select min(id)
+  from Person
+  group by email
+)
+```
+
+- refer to [link](https://stackoverflow.com/questions/45494/mysql-error-1093-cant-specify-target-table-for-update-in-from-clause) for explanation
+
+- you can merge multiple rows from different query like
+
+```sql
+select product_id, year as first_year, quantity, price
+from Sales
+where
+    (product_id, year)  -- matched pair
+  in
+    (select product_id, min(year) as year from Sales group by product_id);
+```
+
+- we can use subqueries to calculate rolling window in some interval
+- the following query get the avg, total in every 7-days window
+- there is also solution using joins + subqueries
+
+```sql
+-- Sol. 1 (subqueries)
+select visited_on, 
+    (
+        select sum(amount)
+        from Customer
+        where visited_on between date_sub(C.visited_on, interval 6 day) and C.visited_on
+    ) as amount,
+    (
+        select round(sum(amount) / 7, 2)
+        from Customer
+        where visited_on between date_sub(C.visited_on, interval 6 day) and C.visited_on
+    ) as average_amount
+from Customer C
+-- consider only days with valid window size
+where visited_on >= (select date_add(min(visited_on), interval 6 day) from Customer)
+group by visited_on
+
+
+-- Sol. 2 (joins + subqueris)
+select C1.visited_on, sum(C2.amount) as amount, round(sum(C2.amount) / 7, 2) as average_amount
+from (
+    -- get all days with valid window size
+    select visited_on
+    from Customer
+    where datediff(visited_on, (select min(visited_on) from Customer)) >= 6
+    group by visited_on
+) C1 left join Customer C2
+-- match each row from C1 with 7 rows from C2
+on datediff(C1.visited_on, C2.visited_on) between 0 and 6
+group by C1.visited_on
+order by C1.visited_on
+```
+
+
+- the following query calculate avg of confirmed mails (confimed / total)
+
+```sql
+select S.user_id,
+  round(avg(if(C.action="confirmed", 1, 0)), 2) as confirmation_rate
+from Signups S left join Confirmations C
+on S.user_id = C.user_id
+group by S.user_id
+```
+
+- the following queries return the same result, but the first is more efficient
+  - the first solution will run the sub query only once, and then filter result in outer query
+  - the second solution will run the sub query once for each row in the outer query which is less efficient
+
+```sql
+-- Sol. 1
+SELECT ROUND(AVG(order_date = customer_pref_delivery_date) * 100, 2) AS immediate_percentage
+FROM Delivery
+WHERE (customer_id, order_date) IN (
+    SELECT customer_id, MIN(order_date)
+    FROM Delivery
+    GROUP BY customer_id
+);
+
+
+-- Sol. 2
+SELECT ROUND(AVG(order_date = customer_pref_delivery_date) * 100, 2) AS immediate_percentage
+FROM Delivery
+WHERE (customer_id, order_date) IN (
+    SELECT customer_id, MIN(order_date)
+    FROM Delivery
+    GROUP BY customer_id
+);
+```
+
+- sql **requires** a name for the sub-query of the from clause
+
+```sql
+select max(num) as num
+from (    -- from + sub-query => must use alias for sub-query
+    select num from MyNumbers group by num having count(num) = 1
+) as singleNums
+```
+
 ---
 
 # Date Functions
+
+> refer for [DateFunctions](https://www.w3schools.com/sql/func_sqlserver_current_timestamp.asp), for details about date manipulations in sql
 
 - [date_format](https://www.w3schools.com/sql/func_mysql_date_format.asp)
 
@@ -718,7 +734,6 @@ select d.name as Department, c.name as Employee, c.salary as Salary
 from CTE c, Department d
 where c.rnk <= 3 and c.departmentId = d.id
 ```
-
 
 ---
 
