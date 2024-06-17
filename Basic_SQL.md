@@ -12,7 +12,6 @@
 - [Common Table Expressions (CTE)](#common-table-expressions-cte)
 - [Readings](#readings)
 
-
 > to review SQL syntax, refer to [W3S](https://www.w3schools.com/sql/default.asp)
 
 ---
@@ -263,6 +262,7 @@ group by name
 order by avg(rating)
 limit 1)
 ```
+
 - the following query counts the no. of categories (0, if not found)
 
 ```sql
@@ -381,7 +381,6 @@ where tiv_2015 in (
 )
 ```
 
-
 - in some queries, the [case](https://www.w3schools.com/sql/sql_case.asp) expression in sql may be useful
 - suppose we want to manipulate the id value while fetching the data
 
@@ -412,7 +411,7 @@ order by id;
 if(x+y+z > greatest(x, y, z) * 2, "Yes", "No")
 ```
 
---- 
+---
 
 # Subqueries
 
@@ -489,7 +488,7 @@ where
 
 ```sql
 -- Sol. 1 (subqueries)
-select visited_on, 
+select visited_on,
     (
         select sum(amount)
         from Customer
@@ -520,7 +519,6 @@ on datediff(C1.visited_on, C2.visited_on) between 0 and 6
 group by C1.visited_on
 order by C1.visited_on
 ```
-
 
 - the following query calculate avg of confirmed mails (confimed / total)
 
@@ -618,6 +616,7 @@ union
 - concat(str1, str2): concatenate strings
 
 - group_concat(): group values of column in string
+
   - refer to [GFG](https://www.geeksforgeeks.org/mysql-group_concat-function/)
 
 - left(str, n): return the left 'n' chars from 'str'
@@ -660,7 +659,7 @@ where conditions regexp '\\bDIAB1'; -- contains 'DIAB1'
 
 - find users with valid mails
   - start with a letter
-  - then chars, digits, ., _, - are allowed
+  - then chars, digits, ., \_, - are allowed
   - end with 'leetcode.com'
 
 ```sql
@@ -669,20 +668,33 @@ from Users
 WHERE mail REGEXP '^[A-Za-z][A-Za-z0-9_\\.\\-]*@leetcode\\.com$';
 ```
 
-
 - suppose, we want to query for each day:
+
   - the no. of the products sold
   - the product name aggregated in string
 
 - the `group_concat()` methods is suitable in such a situation
 
 ```sql
-select sell_date, count(distinct product) as num_sold, 
+select sell_date, count(distinct product) as num_sold,
        group_concat(distinct product order by product separator ',') as products
 from Activities
 group by sell_date
 order by sell_date
 ```
+
+- to cast one data type into another, we can use the [cast](https://www.w3schools.com/sql/func_sqlserver_cast.asp) function
+
+  - cast to int `cast(20.36 AS int)`
+  - cast to varchar `cast(20.36 AS varchar)`
+  - cast to date `cast(20.36 AS date)`
+
+- also look at [convert(datatype, exp, [style])](https://www.w3schools.com/sql/func_sqlserver_convert.asp)
+  - convert string to date `convert(datetime, '2020-02-19')`
+
+- you can format date using [to_char(date)](https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/TO_CHAR-datetime.html)function
+  - to_char(date, "YYYY-MM") as year_month
+
 
 ---
 
@@ -695,6 +707,7 @@ order by sell_date
 - refer to [window functions](https://www.sqlshack.com/use-window-functions-sql-server/) to see different aggregations that can be applied
 
 - you will notice that after the aggregation we use special key words like
+
   - over: to determine partitions of table, and the ordering of the aggregation
   - partition by: used to determine partitions (each is treated as sub-table)
 
@@ -706,11 +719,12 @@ order by sell_date
 -- all rows of the same city will have the same value in grand_total column
 
 SELECT order_id, order_date, customer_name, city, order_amount
- ,SUM(order_amount) OVER(PARTITION BY city) as grand_total 
+ ,SUM(order_amount) OVER(PARTITION BY city) as grand_total
 FROM Orders
 ```
 
 - here is an example of `cte` in `from` clause
+
 ```sql
 select person_name
 from (
@@ -733,6 +747,37 @@ with CTE as (
 select d.name as Department, c.name as Employee, c.salary as Salary
 from CTE c, Department d
 where c.rnk <= 3 and c.departmentId = d.id
+```
+
+- suppose we want to get the ratio of (current month revenue / last month revenue)
+  - using window function LAG(), we can get the value of the prev row in the result
+
+```sql
+WITH CTE AS (
+    SELECT created_at, sum(value) / lag(sum(value)) over () AS ratio
+    FROM SomeTable
+    GROUP BY date_format(created_at, "%Y-%m")
+    ORDER BY date_format(created_at, "%Y-%m")
+)
+SELECT * FROM CTE;
+
+-- another similar idea
+WITH T1 AS (
+    SELECT date_format(created_at, "%Y-%m") AS ym, sum(value) AS cur
+    FROM sf_transactions
+    GROUP BY date_format(created_at, "%Y-%m")
+    ORDER BY date_format(created_at, "%Y-%m")
+), T2 AS (
+    SELECT *, lag(cur) over () AS prev
+    FROM T1
+)
+SELECT * FROM T2;
+```
+
+- see the next example, we can use multiple window functions like
+
+```sql
+(sum(value) - lag(sum(value)) over ()) / lag(sum(value)) over () as ratio
 ```
 
 ---
