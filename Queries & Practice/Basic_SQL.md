@@ -9,7 +9,6 @@
 - [Subqueries](#subqueries)
 - [Date Functions](#date-functions)
 - [String Functions](#string-functions)
-- [Common Table Expressions (CTE)](#common-table-expressions-cte)
 - [Readings](#readings)
 
 > to review SQL syntax, refer to [W3S](https://www.w3schools.com/sql/default.asp)
@@ -700,85 +699,7 @@ order by sell_date
 
 # Common Table Expressions (CTE)
 
-- group by function makes an aggregation on the data, but it group rows into 1 result
 
-- with cte, we can make an aggregation without affecting the number of rows (aggregation with respect to the table)
-
-- refer to [window functions](https://www.sqlshack.com/use-window-functions-sql-server/) to see different aggregations that can be applied
-
-- you will notice that after the aggregation we use special key words like
-
-  - over: to determine partitions of table, and the ordering of the aggregation
-  - partition by: used to determine partitions (each is treated as sub-table)
-
-- look at the following example
-
-```sql
--- this query return the same no. of rows as the table
--- it shows the sum of orders per city (partition by city)
--- all rows of the same city will have the same value in grand_total column
-
-SELECT order_id, order_date, customer_name, city, order_amount
- ,SUM(order_amount) OVER(PARTITION BY city) as grand_total
-FROM Orders
-```
-
-- here is an example of `cte` in `from` clause
-
-```sql
-select person_name
-from (
-    select *, sum(weight) over (order by turn) as total_weight from Queue
-) as sub
-where total_weight <= 1000
-order by total_weight desc
-limit 1
-```
-
-- the following query uses cte to rank salaries in each department
-  - read about [dense_rank vs. rank](https://www.naukri.com/code360/library/difference-between-rank-and-denserank)
-
-```sql
-with CTE as (
-    select *, dense_rank() over (partition by departmentId order by salary desc) as rnk
-    from Employee
-)
--- select * from cte
-select d.name as Department, c.name as Employee, c.salary as Salary
-from CTE c, Department d
-where c.rnk <= 3 and c.departmentId = d.id
-```
-
-- suppose we want to get the ratio of (current month revenue / last month revenue)
-  - using window function LAG(), we can get the value of the prev row in the result
-
-```sql
-WITH CTE AS (
-    SELECT created_at, sum(value) / lag(sum(value)) over () AS ratio
-    FROM SomeTable
-    GROUP BY date_format(created_at, "%Y-%m")
-    ORDER BY date_format(created_at, "%Y-%m")
-)
-SELECT * FROM CTE;
-
--- another similar idea
-WITH T1 AS (
-    SELECT date_format(created_at, "%Y-%m") AS ym, sum(value) AS cur
-    FROM sf_transactions
-    GROUP BY date_format(created_at, "%Y-%m")
-    ORDER BY date_format(created_at, "%Y-%m")
-), T2 AS (
-    SELECT *, lag(cur) over () AS prev
-    FROM T1
-)
-SELECT * FROM T2;
-```
-
-- see the next example, we can use multiple window functions like
-
-```sql
-(sum(value) - lag(sum(value)) over ()) / lag(sum(value)) over () as ratio
-```
 
 ---
 
