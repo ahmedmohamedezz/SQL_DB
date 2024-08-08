@@ -571,7 +571,11 @@ from (    -- from + sub-query => must use alias for sub-query
 
 - [date_format](https://www.w3schools.com/sql/func_mysql_date_format.asp)
 
-- [datediff(date1, date2)](https://www.w3schools.com/sql/func_mysql_datediff.asp)
+- datediff(date1, date2)
+
+  - [MySQL](https://www.w3schools.com/sql/func_mysql_datediff.asp) version
+
+  - [SQL_Server](https://www.w3schools.com/sql/func_sqlserver_datediff.asp) version
 
 - [date_sub(date, interval 1 day)](https://www.w3schools.com/sql/func_mysql_date_sub.asp)
 
@@ -689,17 +693,15 @@ order by sell_date
   - cast to date `cast(20.36 AS date)`
 
 - also look at [convert(datatype, exp, [style])](https://www.w3schools.com/sql/func_sqlserver_convert.asp)
+
   - convert string to date `convert(datetime, '2020-02-19')`
 
 - you can format date using [to_char(date)](https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/TO_CHAR-datetime.html)function
   - to_char(date, "YYYY-MM") as year_month
 
-
 ---
 
 # Common Table Expressions (CTE)
-
-
 
 ---
 
